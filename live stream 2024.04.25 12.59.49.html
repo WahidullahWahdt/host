@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Sound Streaming Example</title>
+</head>
+<body>
+    <audio id="adminAudio" controls></audio>
+    <audio id="userAudio" controls></audio>
+    
+    <button onclick="startStreaming()">Start Admin Sound</button>
+    <button onclick="stopStreaming()">Stop Admin Sound</button>
+
+    <script>
+        let adminStream;
+        let userStream;
+        let adminSourceNode;
+        let userAudioElement;
+
+        async function startStreaming() {
+            try {
+                adminStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                adminSourceNode = new MediaStreamAudioSourceNode(new AudioContext(), { mediaStream: adminStream });
+
+                // Connect the admin audio source node to the destination (speakers)
+                adminSourceNode.connect(adminSourceNode.context.destination);
+
+                // Display the admin audio in the admin audio element
+                document.getElementById('adminAudio').srcObject = adminStream;
+
+                // Create a peer connection for each user to receive the admin audio
+                userStream = new MediaStream();
+                userAudioElement = document.getElementById('userAudio');
+                userAudioElement.srcObject = userStream;
+
+                // Add the admin audio track to the user stream
+                adminStream.getAudioTracks().forEach(track => userStream.addTrack(track));
+
+                // Play the user audio
+                userAudioElement.play();
+            } catch (error) {
+                console.error('Error starting admin sound streaming:', error);
+            }
+        }
+
+        function stopStreaming() {
+            if (adminStream) {
+                adminStream.getTracks().forEach(track => track.stop());
+                document.getElementById('adminAudio').srcObject = null;
+            }
+
+            if (userStream) {
+                userStream.getTracks().forEach(track => track.stop());
+                document.getElementById('userAudio').srcObject = null;
+            }
+
+            if (adminSourceNode) {
+                adminSourceNode.disconnect();
+            }
+        }
+    </script>
+</body>
+</html>
